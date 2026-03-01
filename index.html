@@ -5,391 +5,551 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Alex Chen</title>
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap');
 
     :root {
-      --bg: #0a0a0f;
-      --surface: rgba(255,255,255,0.035);
-      --border: rgba(255,255,255,0.09);
-      --accent: #7850ff;
-      --teal: #00c8b4;
-      --text: #e6edf3;
-      --muted: rgba(255,255,255,0.45);
-      --dim: rgba(255,255,255,0.25);
+      --bg: #07070d;
+      --surface: rgba(255,255,255,0.03);
+      --border: rgba(255,255,255,0.07);
+      --accent: #9b6dff;
+      --teal: #00e5c8;
+      --gold: #f0c040;
+      --text: #e8e0f0;
+      --muted: rgba(232,224,240,0.5);
+      --dim: rgba(232,224,240,0.25);
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html { scroll-behavior: smooth; }
 
     body {
       min-height: 100vh;
       background: var(--bg);
-      font-family: 'Space Grotesk', -apple-system, sans-serif;
+      font-family: 'Space Grotesk', sans-serif;
       color: var(--text);
+      overflow-x: hidden;
     }
 
-    /* Background */
-    .bg {
-      position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      background:
-        radial-gradient(ellipse 70% 50% at 15% 20%, rgba(120,80,255,0.12) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 60% at 85% 80%, rgba(0,200,180,0.08) 0%, transparent 70%);
+    /* ── Animated background canvas ── */
+    #bg-canvas {
+      position: fixed; inset: 0; z-index: 0;
+      pointer-events: none;
     }
 
-    .noise {
-      position: fixed; inset: 0; pointer-events: none; z-index: 0; opacity: 0.025;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    /* ── Grain overlay ── */
+    .grain {
+      position: fixed; inset: 0; z-index: 1; pointer-events: none;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     }
 
-    /* Layout */
+    /* ── Layout ── */
     .container {
-      position: relative; z-index: 1;
-      max-width: 740px; margin: 0 auto;
-      padding: 48px 24px 80px;
+      position: relative; z-index: 2;
+      max-width: 720px; margin: 0 auto;
+      padding: 60px 24px 100px;
     }
 
-    /* Card */
+    /* ── Decorative line top ── */
+    .deco-top {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 48px; opacity: 0.4;
+    }
+    .deco-top span { font-size: 10px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--accent); }
+    .deco-top::before, .deco-top::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    }
+
+    /* ── Card ── */
     .card {
+      position: relative;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 24px;
+      border-radius: 20px;
       padding: 40px;
-      box-shadow: 0 0 0 1px rgba(120,80,255,0.1), 0 20px 60px rgba(0,0,0,0.5);
-      margin-bottom: 24px;
+      margin-bottom: 20px;
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
     }
 
-    /* Profile */
+    /* Corner ornaments */
+    .card::before, .card::after {
+      content: '';
+      position: absolute;
+      width: 40px; height: 40px;
+    }
+    .card::before {
+      top: 12px; left: 12px;
+      border-top: 1px solid rgba(155,109,255,0.4);
+      border-left: 1px solid rgba(155,109,255,0.4);
+    }
+    .card::after {
+      bottom: 12px; right: 12px;
+      border-bottom: 1px solid rgba(0,229,200,0.4);
+      border-right: 1px solid rgba(0,229,200,0.4);
+    }
+
+    /* Glow blob inside card */
+    .card-glow {
+      position: absolute; pointer-events: none;
+      width: 300px; height: 300px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(155,109,255,0.08) 0%, transparent 70%);
+      top: -80px; right: -80px;
+    }
+
+    /* ── Profile ── */
     .profile-row {
-      display: flex; align-items: flex-start; gap: 24px; margin-bottom: 28px;
+      display: flex; align-items: flex-start; gap: 28px; margin-bottom: 28px;
     }
 
     .avatar-wrap { position: relative; flex-shrink: 0; }
 
     .avatar {
-      width: 80px; height: 80px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--teal));
+      width: 88px; height: 88px; border-radius: 50%;
+      background: linear-gradient(135deg, #4a2080, #0a6060);
       display: flex; align-items: center; justify-content: center;
-      font-size: 32px; font-weight: 700; color: #fff;
+      font-family: 'Playfair Display', serif;
+      font-size: 28px; font-weight: 700; color: rgba(255,255,255,0.85);
       overflow: hidden;
     }
-
     .avatar img { width: 100%; height: 100%; object-fit: cover; }
 
+    /* Rotating dashed ring */
     .avatar-ring {
-      position: absolute; inset: -3px; border-radius: 50%;
-      border: 2px solid transparent;
-      background: linear-gradient(135deg, var(--accent), var(--teal)) border-box;
-      -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
-      -webkit-mask-composite: destination-out; mask-composite: exclude;
-      animation: spin 8s linear infinite;
+      position: absolute; inset: -6px; border-radius: 50%;
+      border: 1px dashed rgba(155,109,255,0.5);
+      animation: spin 12s linear infinite;
+    }
+    /* Dot on ring */
+    .avatar-ring::before {
+      content: '';
+      position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .profile-info { flex: 1; padding-top: 4px; }
+    /* Second static ring */
+    .avatar-ring2 {
+      position: absolute; inset: -12px; border-radius: 50%;
+      border: 1px solid rgba(0,229,200,0.12);
+    }
+
+    .profile-info { flex: 1; padding-top: 6px; }
 
     .status-badge {
       display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px; color: var(--teal);
-      background: rgba(0,200,180,0.1); border: 1px solid rgba(0,200,180,0.2);
+      font-size: 10px; color: var(--teal);
+      background: rgba(0,229,200,0.07); border: 1px solid rgba(0,229,200,0.18);
       border-radius: 20px; padding: 3px 10px; margin-bottom: 10px;
-      letter-spacing: 0.05em; text-transform: uppercase;
+      letter-spacing: 0.08em; text-transform: uppercase;
     }
-    .status-dot {
-      width: 6px; height: 6px; border-radius: 50%; background: var(--teal);
-      animation: pulse 2s ease-in-out infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.8)} }
+    .status-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--teal); animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
 
     .name {
-      font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
-      line-height: 1.1; margin-bottom: 4px;
+      font-family: 'Playfair Display', serif;
+      font-size: 34px; font-weight: 700;
+      letter-spacing: -0.5px; line-height: 1.1; margin-bottom: 6px;
     }
-    .name span {
+    .name em {
+      font-style: italic; font-weight: 400;
       background: linear-gradient(90deg, var(--accent), var(--teal));
       -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
     }
-    .title-text { font-size: 14px; color: var(--muted); margin-bottom: 4px; }
-    .location { font-size: 13px; color: var(--dim); }
+
+    .title-text { font-size: 13px; color: var(--muted); margin-bottom: 4px; letter-spacing: 0.02em; }
+    .location { font-size: 12px; color: var(--dim); letter-spacing: 0.03em; }
+
+    /* ── Divider ── */
+    .art-divider {
+      display: flex; align-items: center; gap: 10px;
+      margin: 24px 0;
+    }
+    .art-divider::before, .art-divider::after {
+      content: ''; flex: 1; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(155,109,255,0.3), rgba(0,229,200,0.3), transparent);
+    }
+    .art-divider span { font-size: 14px; opacity: 0.3; }
 
     .bio {
-      font-size: 14px; line-height: 1.7; color: var(--muted);
-      border-top: 1px solid var(--border); padding-top: 20px; margin-bottom: 24px;
+      font-size: 14px; line-height: 1.85; color: var(--muted);
+      font-weight: 300; margin-bottom: 28px;
     }
 
-    /* Social */
-    .social-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    /* ── Tags ── */
+    .tags { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 28px; }
+    .tag {
+      font-size: 11px; padding: 4px 10px; border-radius: 4px;
+      border: 1px solid rgba(155,109,255,0.2);
+      color: rgba(155,109,255,0.8);
+      letter-spacing: 0.05em;
+    }
+
+    /* ── Social ── */
+    .section-label {
+      font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+      color: var(--dim); margin-bottom: 14px;
+    }
+
+    .social-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; }
 
     .social-btn {
       display: inline-flex; align-items: center; gap: 8px;
-      padding: 8px 16px; border-radius: 10px;
-      background: var(--surface); border: 1px solid var(--border);
+      padding: 9px 18px; border-radius: 8px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
       color: var(--muted); font-size: 13px; text-decoration: none;
-      transition: all 0.2s; cursor: pointer; position: relative;
+      transition: all 0.25s; cursor: pointer; position: relative;
     }
-    .social-btn:hover { color: var(--text); border-color: var(--accent); background: rgba(120,80,255,0.1); }
-
-    .social-icon { font-size: 16px; }
+    .social-btn:hover {
+      color: var(--text);
+      background: rgba(155,109,255,0.08);
+      border-color: rgba(155,109,255,0.3);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(155,109,255,0.12);
+    }
+    .social-icon { font-size: 15px; }
 
     /* WeChat popup */
     .wechat-popup {
-      display: none; position: absolute; bottom: calc(100% + 10px); left: 50%;
+      display: none; position: absolute; bottom: calc(100% + 12px); left: 50%;
       transform: translateX(-50%);
-      background: #1a1a2e; border: 1px solid var(--border);
-      border-radius: 12px; padding: 16px; text-align: center;
+      background: #12101a; border: 1px solid rgba(155,109,255,0.2);
+      border-radius: 14px; padding: 18px; text-align: center;
       white-space: nowrap; z-index: 100;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      box-shadow: 0 12px 40px rgba(0,0,0,0.6);
     }
     .wechat-popup::after {
       content: ''; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
-      border: 6px solid transparent; border-top-color: var(--border);
+      border: 7px solid transparent; border-top-color: rgba(155,109,255,0.2);
     }
     .social-btn:hover .wechat-popup { display: block; }
-    .wechat-popup p { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .wechat-popup p { font-size: 11px; color: var(--dim); margin-top: 10px; letter-spacing: 0.05em; }
     .wechat-qr {
-      width: 120px; height: 120px; background: white; border-radius: 8px;
+      width: 130px; height: 130px; background: white; border-radius: 10px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; color: #666; margin: 0 auto;
+      font-size: 11px; color: #888; margin: 0 auto; text-align: center; padding: 8px;
+      line-height: 1.5;
     }
 
-    /* Contact row */
-    .contact-row {
-      display: flex; gap: 16px; flex-wrap: wrap;
-      padding-top: 20px; border-top: 1px solid var(--border); margin-top: 20px;
-    }
+    /* ── Contact ── */
+    .contact-row { display: flex; gap: 20px; flex-wrap: wrap; }
     .contact-item {
       display: flex; align-items: center; gap: 8px;
-      font-size: 13px; color: var(--muted); text-decoration: none;
+      font-size: 12px; color: var(--dim); text-decoration: none;
+      letter-spacing: 0.02em; transition: color 0.2s;
     }
-    .contact-item:hover { color: var(--text); }
+    .contact-item:hover { color: var(--muted); }
 
-    /* Section */
-    .section-title {
-      font-size: 13px; text-transform: uppercase; letter-spacing: 0.1em;
-      color: var(--dim); margin-bottom: 16px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .section-title::after {
-      content: ''; flex: 1; height: 1px; background: var(--border);
-    }
-
-    /* Posts */
+    /* ── Posts ── */
     .post-item {
-      padding: 20px 0; border-bottom: 1px solid var(--border);
-      cursor: pointer; transition: all 0.2s;
+      padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer; transition: all 0.25s; position: relative;
     }
     .post-item:last-child { border-bottom: none; padding-bottom: 0; }
-    .post-item:hover .post-title { color: var(--accent); }
+
+    /* Left accent bar */
+    .post-item::before {
+      content: '';
+      position: absolute; left: -40px; top: 28px;
+      width: 2px; height: 0;
+      background: linear-gradient(to bottom, var(--accent), var(--teal));
+      transition: height 0.3s ease;
+    }
+    .card:hover .post-item:hover::before { height: 30px; }
+
+    .post-item:hover { padding-left: 8px; }
 
     .post-meta {
       display: flex; align-items: center; gap: 10px; margin-bottom: 8px;
     }
     .post-tag {
-      font-size: 11px; padding: 2px 8px; border-radius: 5px;
-      background: rgba(120,80,255,0.12); border: 1px solid rgba(120,80,255,0.25);
-      color: var(--accent);
+      font-size: 10px; padding: 2px 8px; border-radius: 3px;
+      background: rgba(155,109,255,0.1); border: 1px solid rgba(155,109,255,0.2);
+      color: var(--accent); letter-spacing: 0.05em; text-transform: uppercase;
     }
-    .post-date { font-size: 12px; color: var(--dim); }
+    .post-date { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
 
     .post-title {
-      font-size: 16px; font-weight: 600; margin-bottom: 6px;
+      font-family: 'Playfair Display', serif;
+      font-size: 17px; margin-bottom: 7px;
       color: var(--text); transition: color 0.2s;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
     }
-    .post-summary { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .post-item:hover .post-title { color: #fff; }
+    .post-arrow { color: var(--dim); font-size: 16px; flex-shrink: 0; margin-top: 2px; transition: all 0.2s; }
+    .post-item:hover .post-arrow { color: var(--accent); transform: translateX(4px); }
 
-    .post-arrow {
-      float: right; color: var(--dim); font-size: 18px; margin-top: -2px;
-      transition: transform 0.2s, color 0.2s;
-    }
-    .post-item:hover .post-arrow { transform: translateX(4px); color: var(--accent); }
+    .post-summary { font-size: 13px; color: var(--dim); line-height: 1.7; font-weight: 300; }
 
-    /* Edit hint */
+    /* ── Edit hint ── */
     .edit-hint {
-      text-align: center; padding: 16px;
-      font-size: 12px; color: var(--dim);
+      text-align: center; padding: 20px;
+      font-size: 11px; color: var(--dim); letter-spacing: 0.05em;
     }
-    .edit-hint a { color: var(--accent); text-decoration: none; }
-    .edit-hint a:hover { text-decoration: underline; }
+    .edit-hint a { color: var(--accent); text-decoration: none; opacity: 0.7; transition: opacity 0.2s; }
+    .edit-hint a:hover { opacity: 1; }
+
+    /* ── Number counter ── */
+    .post-num {
+      font-size: 11px; color: rgba(155,109,255,0.3);
+      font-variant-numeric: tabular-nums;
+      margin-right: 4px;
+    }
 
     @media (max-width: 480px) {
-      .card { padding: 24px; }
+      .card { padding: 28px 22px; }
       .profile-row { flex-direction: column; align-items: center; text-align: center; }
-      .social-row { justify-content: center; }
-      .contact-row { justify-content: center; }
-      .name { font-size: 24px; }
+      .social-row, .contact-row { justify-content: center; }
+      .name { font-size: 28px; }
+      .tags { justify-content: center; }
     }
   </style>
 </head>
 <body>
-  <div class="bg"></div>
-  <div class="noise"></div>
 
-  <div class="container">
+<canvas id="bg-canvas"></canvas>
+<div class="grain"></div>
 
-    <!-- Profile Card -->
-    <div class="card">
-      <div class="profile-row">
-        <div class="avatar-wrap">
-          <div class="avatar" id="avatar-el">AC</div>
-          <div class="avatar-ring"></div>
-        </div>
-        <div class="profile-info">
-          <div class="status-badge">
-            <div class="status-dot"></div>
-            <span id="status-text">开放合作</span>
-          </div>
-          <div class="name" id="name-el">Alex <span>Chen</span></div>
-          <div class="title-text" id="title-el">创意导演 & 数字艺术家</div>
-          <div class="location" id="location-el">📍 上海 · Studio Nebula</div>
-        </div>
-      </div>
+<div class="container">
 
-      <div class="bio" id="bio-el">
-        专注于品牌视觉、动态设计与创意策划。用设计讲故事，用创意连接世界。热爱咖啡、旅行和一切有趣的事物。
-      </div>
-
-      <!-- Social -->
-      <div class="section-title">社交媒体</div>
-      <div class="social-row" id="social-row">
-        <!-- Rendered by JS -->
-      </div>
-
-      <!-- Contact -->
-      <div class="contact-row">
-        <a class="contact-item" id="email-el" href="#">
-          <span>✉️</span><span id="email-text"></span>
-        </a>
-      </div>
-    </div>
-
-    <!-- Blog Posts -->
-    <div class="card">
-      <div class="section-title">最新文章</div>
-      <div id="posts-container"></div>
-    </div>
-
-    <div class="edit-hint">
-      想修改内容？编辑仓库中的
-      <a href="https://github.com/123ebison-tech/card/edit/main/config.json" target="_blank">config.json</a>
-      即可自动更新 ✨
-    </div>
-
+  <div class="deco-top">
+    <span>Personal Space</span>
   </div>
 
-  <script>
-    // Load config and render
-    fetch('config.json?v=' + Date.now())
-      .then(r => r.json())
-      .then(config => render(config))
-      .catch(() => {
-        // Use embedded fallback
-        render(window.__fallback__);
-      });
+  <!-- Profile Card -->
+  <div class="card">
+    <div class="card-glow"></div>
 
-    window.__fallback__ = {
-      "profile": {
-        "name": "Alex Chen",
-        "title": "创意导演 & 数字艺术家",
-        "bio": "专注于品牌视觉、动态设计与创意策划。用设计讲故事，用创意连接世界。",
-        "avatar": "avatar.jpg",
-        "location": "上海 · Studio Nebula",
-        "email": "alex@studionebula.design",
-        "available": true
-      },
-      "social": [
-        { "name": "微信公众号", "icon": "wechat", "url": "#wechat", "qrcode": "", "color": "#07C160" }
-      ],
-      "posts": []
-    };
+    <div class="profile-row">
+      <div class="avatar-wrap">
+        <div class="avatar" id="avatar-el">AC</div>
+        <div class="avatar-ring"></div>
+        <div class="avatar-ring2"></div>
+      </div>
+      <div class="profile-info">
+        <div class="status-badge">
+          <div class="status-dot"></div>
+          <span id="status-text">开放合作</span>
+        </div>
+        <div class="name" id="name-el">Alex <em>Chen</em></div>
+        <div class="title-text" id="title-el">创意导演 & 数字艺术家</div>
+        <div class="location" id="location-el">✦ 上海 · Studio Nebula</div>
+      </div>
+    </div>
 
-    function render(config) {
-      const p = config.profile;
+    <div class="art-divider"><span>✦</span></div>
 
-      // Avatar
-      const avatarEl = document.getElementById('avatar-el');
-      if (p.avatar) {
-        const img = document.createElement('img');
-        img.src = p.avatar;
-        img.onerror = () => { avatarEl.textContent = p.name.slice(0,2).toUpperCase(); };
-        avatarEl.innerHTML = '';
-        avatarEl.appendChild(img);
-      } else {
-        avatarEl.textContent = p.name.slice(0,2).toUpperCase();
-      }
+    <div class="bio" id="bio-el">
+      专注于品牌视觉、动态设计与创意策划。用设计讲故事，用创意连接世界。热爱咖啡、旅行和一切有趣的事物。
+    </div>
 
-      // Status
-      document.getElementById('status-text').textContent = p.available ? '开放合作' : '暂不接单';
+    <div class="tags" id="tags-el">
+      <span class="tag">Branding</span>
+      <span class="tag">Motion</span>
+      <span class="tag">UI/UX</span>
+      <span class="tag">3D</span>
+      <span class="tag">Creative Strategy</span>
+    </div>
 
-      // Name — split at space for gradient
-      const nameParts = p.name.split(' ');
-      if (nameParts.length >= 2) {
-        document.getElementById('name-el').innerHTML =
-          nameParts[0] + ' <span>' + nameParts.slice(1).join(' ') + '</span>';
-      } else {
-        document.getElementById('name-el').innerHTML = '<span>' + p.name + '</span>';
-      }
+    <div class="section-label">社交媒体</div>
+    <div class="social-row" id="social-row"></div>
 
-      document.getElementById('title-el').textContent = p.title;
-      document.getElementById('location-el').textContent = '📍 ' + p.location;
-      document.getElementById('bio-el').textContent = p.bio;
+    <div class="contact-row">
+      <a class="contact-item" id="email-el" href="#">
+        <span>✉</span><span id="email-text"></span>
+      </a>
+    </div>
+  </div>
 
-      // Email
-      if (p.email) {
-        document.getElementById('email-el').href = 'mailto:' + p.email;
-        document.getElementById('email-text').textContent = p.email;
-      }
+  <!-- Blog Card -->
+  <div class="card">
+    <div class="card-glow" style="background:radial-gradient(circle,rgba(0,229,200,0.06) 0%,transparent 70%);top:auto;bottom:-60px;right:-60px;"></div>
+    <div class="section-label">最新文章</div>
+    <div id="posts-container"></div>
+  </div>
 
-      // Social
-      const socialRow = document.getElementById('social-row');
-      const icons = { wechat: '💬', weibo: '🔴', douyin: '🎵', kuaishou: '⚡', xiaohongshu: '📕', linkedin: '💼', github: '🐙', twitter: '🐦', youtube: '▶️', bilibili: '📺' };
+  <div class="edit-hint">
+    ✦ 编辑
+    <a href="https://github.com/123ebison-tech/card/edit/main/config.json" target="_blank">config.json</a>
+    即可更新所有内容
+  </div>
 
-      (config.social || []).forEach(s => {
-        const btn = document.createElement('div');
-        btn.className = 'social-btn';
+</div>
 
-        if (s.icon === 'wechat') {
-          btn.innerHTML = '<span class="social-icon">💬</span>' + s.name +
-            '<div class="wechat-popup">' +
-              '<div class="wechat-qr">' +
-                (s.qrcode ? '<img src="' + s.qrcode + '" style="width:100%;height:100%;object-fit:contain;border-radius:6px"/>'
-                          : '请在 config.json 中<br>设置 qrcode 路径') +
-              '</div>' +
-              '<p>扫码关注公众号</p>' +
-            '</div>';
-        } else {
-          btn.innerHTML = '<span class="social-icon">' + (icons[s.icon] || '🔗') + '</span>' + s.name;
-          btn.onclick = () => { if (s.url && s.url !== '#') window.open(s.url, '_blank'); };
-          btn.style.cursor = 'pointer';
+<script>
+/* ── Animated bg ── */
+(function(){
+  const canvas = document.getElementById('bg-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles;
+
+  function resize(){
+    W = canvas.width = window.innerWidth;
+    H = canvas.height = window.innerHeight;
+    init();
+  }
+
+  function init(){
+    particles = Array.from({length: 60}, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: Math.random() * 1.5 + 0.3,
+      vx: (Math.random() - 0.5) * 0.15,
+      vy: (Math.random() - 0.5) * 0.15,
+      opacity: Math.random() * 0.4 + 0.05,
+      color: Math.random() > 0.5 ? '155,109,255' : '0,229,200'
+    }));
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+
+    // Large blobs
+    const blobs = [
+      { x: W*0.15, y: H*0.25, r: 350, c: 'rgba(80,40,160,0.07)' },
+      { x: W*0.85, y: H*0.75, r: 300, c: 'rgba(0,120,100,0.06)' },
+      { x: W*0.5,  y: H*0.5,  r: 200, c: 'rgba(100,60,200,0.04)' },
+    ];
+    blobs.forEach(b => {
+      const g = ctx.createRadialGradient(b.x, b.y, 0, b.x, b.y, b.r);
+      g.addColorStop(0, b.c); g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g; ctx.beginPath();
+      ctx.arc(b.x, b.y, b.r, 0, Math.PI*2);
+      ctx.fill();
+    });
+
+    // Particles + connections
+    particles.forEach((p, i) => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(${p.color},${p.opacity})`;
+      ctx.fill();
+
+      for (let j = i+1; j < particles.length; j++) {
+        const q = particles[j];
+        const dx = p.x - q.x, dy = p.y - q.y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if (d < 120) {
+          ctx.beginPath();
+          ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y);
+          ctx.strokeStyle = `rgba(${p.color},${(1-d/120)*0.06})`;
+          ctx.lineWidth = 0.5; ctx.stroke();
         }
-
-        socialRow.appendChild(btn);
-      });
-
-      // Posts
-      const postsContainer = document.getElementById('posts-container');
-      if (!config.posts || config.posts.length === 0) {
-        postsContainer.innerHTML = '<div style="text-align:center;color:rgba(255,255,255,0.3);padding:24px;font-size:14px">暂无文章，在 config.json 中添加吧</div>';
-        return;
       }
+    });
 
-      config.posts.forEach(post => {
-        const item = document.createElement('div');
-        item.className = 'post-item';
-        item.onclick = () => { if (post.url && post.url !== '#') window.open(post.url, '_blank'); };
-        item.innerHTML = `
-          <div class="post-meta">
-            <span class="post-tag">${post.tag || '文章'}</span>
-            <span class="post-date">${post.date}</span>
-          </div>
-          <div class="post-title">
-            <span class="post-arrow">→</span>
-            ${post.title}
-          </div>
-          <div class="post-summary">${post.summary}</div>
-        `;
-        postsContainer.appendChild(item);
-      });
+    requestAnimationFrame(draw);
+  }
+
+  window.addEventListener('resize', resize);
+  resize(); draw();
+})();
+
+/* ── Content ── */
+fetch('config.json?v=' + Date.now())
+  .then(r => r.json())
+  .then(render)
+  .catch(() => render(fallback));
+
+const fallback = {
+  profile: {
+    name: "Alex Chen", title: "创意导演 & 数字艺术家",
+    bio: "专注于品牌视觉、动态设计与创意策划。用设计讲故事，用创意连接世界。热爱咖啡、旅行和一切有趣的事物。",
+    avatar: "avatar.jpg", location: "上海 · Studio Nebula",
+    email: "alex@studionebula.design", available: true
+  },
+  social: [
+    { name: "微信公众号", icon: "wechat", url: "#wechat", qrcode: "" },
+    { name: "快手", icon: "kuaishou", url: "#" }
+  ],
+  posts: [
+    { title: "如何用设计思维解决问题", date: "2026-02-20", summary: "设计不只是让东西变好看，更是一种思维方式。", tag: "设计", url: "#" },
+    { title: "2026 年创意行业趋势观察", date: "2026-01-15", summary: "AI 工具爆发、短视频内容升级、品牌去标准化……", tag: "趋势", url: "#" },
+    { title: "我的工作流：从灵感到交付", date: "2025-12-10", summary: "整理了从接到项目到最终交付的完整工作流。", tag: "工作流", url: "#" }
+  ]
+};
+
+function render(c) {
+  const p = c.profile;
+
+  // Avatar
+  const av = document.getElementById('avatar-el');
+  if (p.avatar) {
+    const img = new Image();
+    img.src = p.avatar;
+    img.onload = () => { av.innerHTML=''; av.appendChild(img); };
+  }
+
+  document.getElementById('status-text').textContent = p.available ? '开放合作' : '暂不接单';
+
+  // Name with italic second part
+  const parts = p.name.split(' ');
+  document.getElementById('name-el').innerHTML = parts.length >= 2
+    ? `${parts[0]} <em>${parts.slice(1).join(' ')}</em>`
+    : `<em>${p.name}</em>`;
+
+  document.getElementById('title-el').textContent = p.title;
+  document.getElementById('location-el').textContent = '✦ ' + p.location;
+  document.getElementById('bio-el').textContent = p.bio;
+
+  if (p.email) {
+    document.getElementById('email-el').href = 'mailto:' + p.email;
+    document.getElementById('email-text').textContent = p.email;
+  }
+
+  // Social
+  const icons = { wechat:'💬', kuaishou:'⚡', weibo:'🔴', douyin:'🎵', xiaohongshu:'📕', linkedin:'💼', github:'🐙', twitter:'🐦', youtube:'▶️', bilibili:'📺' };
+  const row = document.getElementById('social-row');
+
+  (c.social || []).forEach(s => {
+    const btn = document.createElement('div');
+    btn.className = 'social-btn';
+
+    if (s.icon === 'wechat') {
+      btn.innerHTML = `<span class="social-icon">💬</span>${s.name}
+        <div class="wechat-popup">
+          <div class="wechat-qr">${s.qrcode ? `<img src="${s.qrcode}" style="width:100%;height:100%;object-fit:contain;border-radius:6px"/>` : '扫码关注<br>（二维码待设置）'}</div>
+          <p>扫码关注公众号</p>
+        </div>`;
+    } else {
+      btn.innerHTML = `<span class="social-icon">${icons[s.icon]||'🔗'}</span>${s.name}`;
+      if (s.url && s.url !== '#') btn.onclick = () => window.open(s.url, '_blank');
     }
-  </script>
+    row.appendChild(btn);
+  });
+
+  // Posts
+  const pc = document.getElementById('posts-container');
+  if (!c.posts?.length) {
+    pc.innerHTML = '<div style="text-align:center;color:var(--dim);padding:32px;font-size:13px;letter-spacing:.05em">暂无文章</div>';
+    return;
+  }
+
+  c.posts.forEach((post, i) => {
+    const el = document.createElement('div');
+    el.className = 'post-item';
+    if (post.url && post.url !== '#') el.onclick = () => window.open(post.url, '_blank');
+    el.innerHTML = `
+      <div class="post-meta">
+        <span class="post-tag">${post.tag || '文章'}</span>
+        <span class="post-date">${post.date}</span>
+      </div>
+      <div class="post-title">
+        <span><span class="post-num">0${i+1}.</span>${post.title}</span>
+        <span class="post-arrow">→</span>
+      </div>
+      <div class="post-summary">${post.summary}</div>`;
+    pc.appendChild(el);
+  });
+}
+</script>
 </body>
 </html>
