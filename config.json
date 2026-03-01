@@ -15,6 +15,12 @@
       "url": "#wechat",
       "qrcode": "",
       "color": "#07C160"
+    },
+    {
+      "name": "快手",
+      "icon": "kuaishou",
+      "url": "#",
+      "color": "#FF4906"
     }
   ],
   "posts": [
